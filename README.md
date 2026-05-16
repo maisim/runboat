@@ -210,13 +210,34 @@ RUNBOAT_REPOS=[{"repo": "^oca/.*", "branch": "^15.0$", "builds": [{"image": "ghc
 
 ## Developing
 
-- setup environment variables (start from `.env.sample`, the meaning of the environment
-  variables is documented in [settings.py](./src/runboat/settings.py))
-- install uv and run `uv sync --extra test`
-- run with `uv run uvicorn runboat.app:app --log-config=log-config.yaml`
-- api documentation is at `http://localhost:8000/docs`
-- run tests with `uv run pytest` (environment variables used in tests are declared in
-  `.env.test`)
+1.  Copy `.env.sample` to `.env` and adjust to your environment. The meaning of each
+    variable is documented in [settings.py](./src/runboat/settings.py).
+2.  Install [uv](https://docs.astral.sh/uv/) and run:
+    ```sh
+    uv sync --extra test
+    ```
+3.  Start the development server with hot reload:
+    ```sh
+    uv run uvicorn runboat.app:app --log-config=log-config.yaml --reload
+    ```
+4.  API documentation is at `http://localhost:8000/docs`.
+5.  Run tests with:
+    ```sh
+    uv run pytest
+    ```
+
+### VCS Provider Setup
+
+Set `RUNBOAT_VCS_API_TOKEN` in your `.env` with a token for your VCS provider:
+
+| Provider | Token type | Required scopes |
+|----------|-----------|-----------------|
+| GitHub   | Personal access token | `repo` |
+| GitLab   | Personal access token | `api` |
+| GitLab (self-hosted) | Personal access token | `api` + set `RUNBOAT_GITLAB_BASE_URL` |
+
+Environment variables for tests are declared in `.env.test`; no real VCS token
+is needed for the unit test suite.
 
 ## Running in production
 
