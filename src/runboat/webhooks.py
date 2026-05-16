@@ -7,6 +7,7 @@ from fastapi import APIRouter, BackgroundTasks, Header, Request
 from .controller import controller
 from .models import SourceInfo
 from .settings import settings
+from .vcs_client import get_vcs_client
 
 _logger = logging.getLogger(__name__)
 
@@ -142,16 +143,13 @@ async def receive_gitlab_payload(
             return
         action = mr["action"]
         if action in ("open", "update", "reopen"):
-            source_info = SourceInfo(
-                provider="gitlab",
-                repository_id=repo,
-                repository_full_name=repo,
-                repository_url=f"https://gitlab.com/{repo}",
+            client = get_vcs_client("gitlab", settings)
+            source_info = client.build_source_info(
+                repo=repo,
                 source_kind="review_request",
                 source_branch=mr["source_branch"],
                 target_branch=target_branch,
                 commit_sha=mr["last_commit"]["id"],
-                clone_url=f"https://gitlab.com/{repo}.git",
                 review_id=str(mr["iid"]),
                 review_url=mr.get("url"),
             )
@@ -174,18 +172,12 @@ async def receive_gitlab_payload(
                 repo, target_branch,
             )
             return
-        source_info = SourceInfo(
-            provider="gitlab",
-            repository_id=repo,
-            repository_full_name=repo,
-            repository_url=f"https://gitlab.com/{repo}",
+        client = get_vcs_client("gitlab", settings)
+        source_info = client.build_source_info(
+            repo=repo,
             source_kind="branch",
-            source_branch=None,
-            target_branch=target_branch,
             commit_sha=payload["after"],
-            clone_url=f"https://gitlab.com/{repo}.git",
-            review_id=None,
-            review_url=None,
+            target_branch=target_branch,
         )
         background_tasks.add_task(
             controller.deploy_commit,

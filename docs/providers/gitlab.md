@@ -61,9 +61,25 @@ GitLab API endpoints require URL-encoded project paths. For example,
 `group/subgroup/project` becomes `group%2Fsubgroup%2Fproject` when making API
 calls. This encoding is handled internally by the `GitlabClient`.
 
+## Self-Hosted GitLab
+
+Runboat supports self-hosted GitLab instances. Configure the base URL with the
+`RUNBOAT_GITLAB_BASE_URL` environment variable:
+
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `RUNBOAT_GITLAB_BASE_URL` | Base URL of your GitLab instance | `https://gitlab.com` |
+
+Example for a self-hosted instance at `gitlab.example.com`:
+
+```
+RUNBOAT_GITLAB_BASE_URL=https://gitlab.example.com
+```
+
+The API URL is derived automatically as `{base_url}/api/v4`.
+Clone URLs and repository URLs use `{base_url}` directly.
+
 ## Limitations
 
-- Only `gitlab.com` (SaaS) is supported. Self-hosted GitLab instances are not yet
-  supported.
 - The token must have `api` scope to read repository data and post commit statuses.
 - Git submodules are not handled.

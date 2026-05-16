@@ -30,6 +30,24 @@ class AbstractVCSClient(abc.ABC):
         ...
 
     @abc.abstractmethod
+    def build_source_info(
+        self,
+        repo: str,
+        source_kind: str,
+        commit_sha: str,
+        *,
+        source_branch: Optional[str] = None,
+        target_branch: Optional[str] = None,
+        review_id: Optional[str] = None,
+        review_url: Optional[str] = None,
+    ) -> SourceInfo:
+        """
+        Build a SourceInfo from known data without making API calls.
+        Useful for webhook handlers that already have all payload fields.
+        """
+        ...
+
+    @abc.abstractmethod
     async def set_commit_status(
         self, source_info: SourceInfo, state: str, target_url: Optional[str] = None
     ) -> None:

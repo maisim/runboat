@@ -59,6 +59,12 @@ class Settings(BaseSettings):
     # Token for the VCS API (e.g., GitHub, GitLab)
     vcs_api_token: str | None = None
     vcs_webhook_secret: Optional[bytes] = None
+    # Base URL for self-hosted GitLab instances.
+    # Defaults to https://gitlab.com for GitLab SaaS.
+    gitlab_base_url: str = "https://gitlab.com"
+    # Base URL for self-hosted GitHub Enterprise instances.
+    # Defaults to https://api.github.com for GitHub SaaS.
+    github_base_url: str = "https://api.github.com"
     log_config: str | None = None
     base_url: str = "http://localhost:8000"
     additional_footer_html: str = ""

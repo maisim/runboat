@@ -19,10 +19,14 @@ class NotFoundOnGitLab(ClientError):
 class GitlabClient(AbstractVCSClient):
     """
     Concrete implementation of AbstractVCSClient for GitLab.
+    Supports both gitlab.com and self-hosted GitLab instances.
     """
 
     def __init__(self, settings):
         self.settings = settings
+        base_url = getattr(settings, "gitlab_base_url", None) if settings else None
+        self.base_url = (base_url or "https://gitlab.com").rstrip("/")
+        self.api_url = f"{self.base_url}/api/v4"
 
     @staticmethod
     def _encode_project_path(repo: str) -> str:
@@ -32,7 +36,7 @@ class GitlabClient(AbstractVCSClient):
     async def _gitlab_request(self, method: str, url: str, json: Any = None) -> Any:
         """Make a request to the GitLab API."""
         async with httpx.AsyncClient() as client:
-            full_url = f"https://gitlab.com/api/v4{url}"
+            full_url = f"{self.api_url}{url}"
             headers = {
                 "Accept": "application/json",
             }
@@ -72,10 +76,42 @@ class GitlabClient(AbstractVCSClient):
             _logger.error(f"Failed to read SourceInfo from K8s for build {build_name}: {e}")
             return None
 
+    def build_source_info(
+        self,
+        repo: str,
+        source_kind: str,
+        commit_sha: str,
+        *,
+        source_branch: Optional[str] = None,
+        target_branch: Optional[str] = None,
+        review_id: Optional[str] = None,
+        review_url: Optional[str] = None,
+    ) -> SourceInfo:
+        """
+        Build a SourceInfo for GitLab without making API calls.
+        Uses self.base_url so self-hosted instances are handled correctly.
+        """
+        return SourceInfo(
+            provider="gitlab",
+            repository_id=repo,
+            repository_full_name=repo,
+            repository_url=f"{self.base_url}/{repo}",
+            source_kind=source_kind,
+            source_branch=source_branch,
+            target_branch=target_branch,
+            commit_sha=commit_sha,
+            clone_url=f"{self.base_url}/{repo}.git",
+            review_id=review_id,
+            review_url=review_url,
+        )
+
     async def get_source_info_from_repo_details(self, repo_details: dict) -> SourceInfo:
         """
         Gathers source information by calling the GitLab API using provided
         repository, MR details, and SHA.
+
+        For callers that already have the data (e.g. webhook payloads),
+        use build_source_info() directly to avoid API calls.
         """
         repo = repo_details.get("repo")
         target_branch = repo_details.get("target_branch")
@@ -110,18 +146,12 @@ class GitlabClient(AbstractVCSClient):
         else:
             raise ValueError("At least one of target_branch, commit_sha, or mr_iid must be provided")
 
-        clone_url = f"https://gitlab.com/{repo}.git"
-
-        return SourceInfo(
-            provider="gitlab",
-            repository_id=repo,
-            repository_full_name=repo,
-            repository_url=f"https://gitlab.com/{repo}",
+        return self.build_source_info(
+            repo=repo,
             source_kind="review_request" if mr_iid else "branch",
+            commit_sha=commit_sha,
             source_branch=source_branch,
             target_branch=target_branch,
-            commit_sha=commit_sha,
-            clone_url=clone_url,
             review_id=str(mr_iid) if mr_iid else None,
             review_url=review_url,
         )

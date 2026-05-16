@@ -16,18 +16,20 @@ class GithubClient(AbstractVCSClient):
     Concrete implementation of AbstractVCSClient for GitHub.
     This class encapsulates all GitHub-specific logic and API interactions.
     """
-    
+
     def __init__(self, settings):
         self.settings = settings
+        default = "https://api.github.com"
+        self.base_url = getattr(settings, "github_base_url", default) if settings else default
 
     async def _github_request(self, method: str, url: str, json: Any = None) -> Any:
         """Make a request to the GitHub API."""
         async with httpx.AsyncClient() as client:
-            full_url = f"https://api.github.com{url}"
+            full_url = f"{self.base_url}{url}"
             headers = {
                 "Accept": "application/vnd.github.v3+json",
             }
-            if self.settings.vcs_api_token:  # Use the generic token setting
+            if self.settings.vcs_api_token:
                 headers["Authorization"] = f"token {self.settings.vcs_api_token}"
             response = await client.request(method, full_url, headers=headers, json=json)
             if response.status_code == 404:
@@ -105,17 +107,40 @@ class GithubClient(AbstractVCSClient):
 
         clone_url = f"https://github.com/{repo}.git"
 
+        return self.build_source_info(
+            repo=repo,
+            source_kind="review_request" if pr else "branch",
+            commit_sha=commit_sha,
+            source_branch=source_branch,
+            target_branch=target_branch,
+            review_id=str(pr) if pr else None,
+            review_url=review_url,
+        )
+
+    def build_source_info(
+        self,
+        repo: str,
+        source_kind: str,
+        commit_sha: str,
+        *,
+        source_branch: Optional[str] = None,
+        target_branch: Optional[str] = None,
+        review_id: Optional[str] = None,
+        review_url: Optional[str] = None,
+    ) -> SourceInfo:
+        """Build a SourceInfo for GitHub without making API calls."""
+        clone_url = f"https://github.com/{repo}.git"
         return SourceInfo(
             provider="github",
             repository_id=repo,
             repository_full_name=repo,
             repository_url=f"https://github.com/{repo}",
-            source_kind="review_request" if pr else "branch",
+            source_kind=source_kind,
             source_branch=source_branch,
             target_branch=target_branch,
             commit_sha=commit_sha,
             clone_url=clone_url,
-            review_id=str(pr) if pr else None,
+            review_id=review_id,
             review_url=review_url,
         )
 

@@ -10,6 +10,39 @@ def test_gitlab_encode_project_path() -> None:
     assert encoded == "group%2Fsubgroup%2Fproject"
 
 
+def test_gitlab_build_source_info() -> None:
+    settings = Settings()
+    client = GitlabClient(settings)
+    result = client.build_source_info(
+        repo="group/project",
+        source_kind="review_request",
+        commit_sha="abc123",
+        source_branch="feature",
+        target_branch="main",
+        review_id="42",
+        review_url="https://gitlab.com/group/project/-/merge_requests/42",
+    )
+    assert result.provider == "gitlab"
+    assert result.repository_id == "group/project"
+    assert result.repository_url == "https://gitlab.com/group/project"
+    assert result.clone_url == "https://gitlab.com/group/project.git"
+    assert result.source_kind == "review_request"
+    assert result.review_id == "42"
+
+
+def test_gitlab_build_source_info_self_hosted() -> None:
+    settings = Settings(gitlab_base_url="https://gitlab.example.com")
+    client = GitlabClient(settings)
+    result = client.build_source_info(
+        repo="group/project",
+        source_kind="branch",
+        commit_sha="abc123",
+        target_branch="main",
+    )
+    assert result.repository_url == "https://gitlab.example.com/group/project"
+    assert result.clone_url == "https://gitlab.example.com/group/project.git"
+
+
 @pytest.mark.asyncio
 async def test_gitlab_get_source_info_from_repo_details_mr(mocker: MockerFixture) -> None:
     settings = Settings()
