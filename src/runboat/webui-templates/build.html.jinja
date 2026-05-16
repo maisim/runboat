@@ -39,7 +39,7 @@
                     buildElement.undeployed();
                 }
                 const repolinkElement = document.getElementById("repolink");
-                repolinkElement.innerHTML = `Other builds for <a href="./builds.html?repo=${build.commit_info.repo}">this repo</a>.`;
+                repolinkElement.innerHTML = `Other builds for <a href="./builds.html?repo=${build.source_info.repository_id}">this repo</a>.`;
             }
 
             function onerror(event) {

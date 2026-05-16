@@ -16,3 +16,8 @@ class NotFoundOnGitHub(ClientError):
 
 class RepoOrBranchNotSupported(ClientError):
     pass
+
+
+class RunboatVCSClientError(Exception):
+    """Exception raised for errors in the VCS client abstraction layer."""
+    pass

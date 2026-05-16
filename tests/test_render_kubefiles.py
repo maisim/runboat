@@ -1,6 +1,6 @@
-from runboat.github import CommitInfo
 from runboat.k8s import DeploymentMode, _render_kubefiles, make_deployment_vars
 from runboat.settings import BuildSettings, settings
+from runboat.vcs_client import SourceInfo
 
 EXPECTED = """\
 resources:
@@ -21,10 +21,16 @@ labels:
     includeTemplates: true
 
 commonAnnotations:
-  runboat/repo: "oca/mis-builder"
+  runboat/provider: "github"
+  runboat/repository-id: "oca/mis-builder"
+  runboat/repository-url: "https://github.com/oca/mis-builder"
+  runboat/repository-full-name: "oca/mis-builder"
+  runboat/source-kind: "branch"
+  runboat/source-branch: ""
   runboat/target-branch: "15.0"
-  runboat/pr: ""
-  runboat/git-commit: "abcdef123456789"
+  runboat/review-id: ""
+  runboat/commit-sha: "abcdef123456789"
+  runboat/clone-url: "https://github.com/oca/mis-builder.git"
 
 images:
   - name: odoo
@@ -88,11 +94,18 @@ def test_render_kubefiles() -> None:
         mode=DeploymentMode.deployment,
         build_name="build-name",
         slug="build-slug",
-        commit_info=CommitInfo(
-            repo="oca/mis-builder",
+        source_info=SourceInfo(
+            provider="github",
+            repository_id="oca/mis-builder",
+            repository_full_name="oca/mis-builder",
+            repository_url="https://github.com/oca/mis-builder",
+            source_kind="branch",
+            source_branch=None,
             target_branch="15.0",
-            pr=None,
-            git_commit="abcdef123456789",
+            commit_sha="abcdef123456789",
+            clone_url="https://github.com/oca/mis-builder.git",
+            review_id=None,
+            review_url=None,
         ),
         build_settings=build_settings,
     )

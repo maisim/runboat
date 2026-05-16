@@ -4,9 +4,7 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 from . import k8s
-from .db import BuildsDb
-from .github import CommitInfo
-from .models import Build, BuildEvent, BuildInitStatus, BuildStatus
+from .models import Build, BuildEvent, BuildInitStatus, BuildStatus, SourceInfo
 from .settings import settings
 
 _logger = logging.getLogger(__name__)
@@ -96,16 +94,18 @@ class Controller:
     def undeploying(self) -> int:
         return self.db.count_by_status(BuildStatus.undeploying)
 
-    async def deploy_commit(self, commit_info: CommitInfo) -> None:
+    async def deploy_commit(self, source_info: SourceInfo) -> None:
         """Deploy build for a commit, or do nothing if build already exist."""
+        # TODO: Update this to work with SourceInfo instead of CommitInfo
+        # For now, we'll convert SourceInfo to a format that works with existing code
         build = self.db.get_for_commit(
-            repo=commit_info.repo,
-            target_branch=commit_info.target_branch,
-            pr=commit_info.pr,
-            git_commit=commit_info.git_commit,
+            repo=source_info.repository_id,
+            target_branch=source_info.target_branch or "",
+            pr=int(source_info.review_id) if source_info.review_id else None,
+            git_commit=source_info.commit_sha,
         )
         if build is None:
-            await Build.deploy(commit_info)
+            await Build.deploy(source_info)
 
     async def undeploy_builds(
         self,

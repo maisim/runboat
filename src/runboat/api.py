@@ -9,10 +9,13 @@ from pydantic import BaseModel, ConfigDict
 from sse_starlette.sse import EventSourceResponse
 from starlette.status import HTTP_404_NOT_FOUND
 
-from . import github, models
+from . import models
+from .github_client import GithubClient
 from .controller import Controller, controller
 from .db import SortOrder
 from .deps import authenticated
+from .models import SourceInfo
+from .settings import settings
 
 router = APIRouter()
 
@@ -32,22 +35,15 @@ class Status(BaseModel):
     undeploying: int
 
 
-class Repo(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    name: str
-    link: str
-
-
 class Build(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     name: str
-    commit_info: github.CommitInfo
+    source_info: SourceInfo  # Changed from commit_info: github.CommitInfo
     deploy_link: str
     deploy_link_mailhog: str
     repo_target_branch_link: str
-    repo_pr_link: str | None
+    repo_review_link: str | None  # Changed from repo_pr_link
     repo_commit_link: str
     webui_link: str
     status: models.BuildStatus
@@ -65,7 +61,7 @@ async def controller_status() -> Controller:
     return controller
 
 
-@router.get("/repos", response_model=list[Repo])
+@router.get("/repos", response_model=list[models.Repo])
 async def repos() -> list[models.Repo]:
     return controller.db.repos()
 
@@ -108,8 +104,15 @@ async def undeploy_builds(
 )
 async def trigger_branch(repo: str, branch: str) -> None:
     """Trigger build for a branch."""
-    commit_info = await github.get_branch_info(repo, branch)
-    await controller.deploy_commit(commit_info)
+    # Create a GithubClient instance
+    github_client = GithubClient(settings)
+    # Get source info using the new client
+    source_info = await github_client.get_source_info_from_repo_details({
+        "repo": repo,
+        "target_branch": branch,
+        "commit_sha": ""  # This will be filled by the client
+    })
+    await controller.deploy_commit(source_info)
 
 
 @router.post(
@@ -118,8 +121,15 @@ async def trigger_branch(repo: str, branch: str) -> None:
 )
 async def trigger_pull(repo: str, pr: int) -> None:
     """Trigger build for a pull request."""
-    commit_info = await github.get_pull_info(repo, pr)
-    await controller.deploy_commit(commit_info)
+    # Create a GithubClient instance
+    github_client = GithubClient(settings)
+    # Get source info using the new client
+    source_info = await github_client.get_source_info_from_repo_details({
+        "repo": repo,
+        "pr": pr,
+        "commit_sha": ""  # This will be filled by the client
+    })
+    await controller.deploy_commit(source_info)
 
 
 async def _build_by_name(name: str) -> models.Build:
@@ -207,18 +217,32 @@ class BuildEventSource:
 
     @classmethod
     def _serialize(cls, event: models.BuildEvent, build: models.Build) -> str:
-        return BuildEvent(event=event, build=Build.from_orm(build)).json()
+        # Convert models.Build to api.Build (which now uses SourceInfo)
+        api_build = Build(
+            name=build.name,
+            source_info=build.source_info,
+            deploy_link=build.deploy_link,
+            deploy_link_mailhog=build.deploy_link_mailhog,
+            repo_target_branch_link=build.repo_target_branch_link,
+            repo_review_link=build.repo_review_link,
+            repo_commit_link=build.repo_commit_link,
+            webui_link=build.webui_link,
+            status=build.status,
+            created=build.created,
+            last_scaled=build.last_scaled
+        )
+        return BuildEvent(event=event, build=api_build).json()
 
     def on_build_event(self, event: models.BuildEvent, build: models.Build) -> None:
-        if self.repo and build.commit_info.repo != self.repo:
+        if self.repo and build.source_info.repository_id != self.repo:
             return
-        if self.target_branch and build.commit_info.target_branch != self.target_branch:
+        if self.target_branch and build.source_info.target_branch != self.target_branch:
             return
         if self.branch and (
-            build.commit_info.target_branch != self.branch or build.commit_info.pr
+            build.source_info.target_branch != self.branch or build.source_info.review_id
         ):
             return
-        if self.pr and build.commit_info.pr != self.pr:
+        if self.pr and build.source_info.review_id != str(self.pr):
             return
         if self.build_name and build.name != self.build_name:
             return

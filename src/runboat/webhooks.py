@@ -5,8 +5,8 @@ from typing import Annotated
 from fastapi import APIRouter, BackgroundTasks, Header, Request
 
 from .controller import controller
-from .github import CommitInfo
 from .settings import settings
+from .vcs_client import SourceInfo
 
 _logger = logging.getLogger(__name__)
 
@@ -16,6 +16,7 @@ router = APIRouter()
 def _verify_github_signature(
     x_hub_signature_256: str | None, secret: bytes | None, body: bytes
 ) -> bool:
+    """Verify the GitHub webhook signature using HMAC-SHA256."""
     if not secret:
         return True
     if not x_hub_signature_256:
@@ -35,9 +36,10 @@ async def receive_payload(
     x_github_event: Annotated[str, Header(...)],
     x_hub_signature_256: Annotated[str | None, Header(...)] = None,
 ) -> None:
+    """Receive GitHub webhook payload and trigger builds."""
     body = await request.body()
     if not _verify_github_signature(
-        x_hub_signature_256, settings.github_webhook_secret, body
+        x_hub_signature_256, settings.vcs_webhook_secret, body
     ):
         return
     payload = await request.json()
@@ -53,14 +55,24 @@ async def receive_payload(
             )
             return
         if payload["action"] in ("opened", "synchronize"):
+            # Create a SourceInfo object from GitHub webhook data
+            pr_number = payload["pull_request"]["number"]
+            source_info = SourceInfo(
+                provider="github",
+                repository_id=repo,
+                repository_full_name=repo,
+                repository_url=f"https://github.com/{repo}",
+                source_kind="review_request",
+                source_branch=payload["pull_request"]["head"]["ref"],
+                target_branch=target_branch,
+                commit_sha=payload["pull_request"]["head"]["sha"],
+                clone_url=f"https://github.com/{repo}.git",
+                review_id=str(pr_number),
+                review_url=f"https://github.com/{repo}/pull/{pr_number}",
+            )
             background_tasks.add_task(
                 controller.deploy_commit,
-                CommitInfo(
-                    repo=repo,
-                    target_branch=target_branch,
-                    pr=payload["pull_request"]["number"],
-                    git_commit=payload["pull_request"]["head"]["sha"],
-                ),
+                source_info,
             )
         elif payload["action"] in ("closed",):
             background_tasks.add_task(
@@ -79,12 +91,21 @@ async def receive_payload(
                 target_branch,
             )
             return
+        # Create a SourceInfo object from GitHub push webhook data
+        source_info = SourceInfo(
+            provider="github",
+            repository_id=repo,
+            repository_full_name=repo,
+            repository_url=f"https://github.com/{repo}",
+            source_kind="branch",
+            source_branch=None,
+            target_branch=target_branch,
+            commit_sha=payload["after"],
+            clone_url=f"https://github.com/{repo}.git",
+            review_id=None,
+            review_url=None,
+        )
         background_tasks.add_task(
             controller.deploy_commit,
-            CommitInfo(
-                repo=repo,
-                target_branch=target_branch,
-                pr=None,
-                git_commit=payload["after"],
-            ),
+            source_info,
         )

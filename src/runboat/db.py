@@ -5,8 +5,7 @@ from enum import Enum
 from typing import Protocol, cast
 from weakref import WeakSet
 
-from .github import CommitInfo
-from .models import Build, BuildEvent, BuildInitStatus, BuildStatus, Repo
+from .models import Build, BuildEvent, BuildInitStatus, BuildStatus, Repo, SourceInfo
 
 _logger = logging.getLogger(__name__)
 
@@ -41,11 +40,26 @@ class BuildsDb:
 
     @classmethod
     def _build_from_row(cls, row: "sqlite3.Row") -> Build:
-        commit_info_fields = {"repo", "target_branch", "pr", "git_commit"}
-        commit_info = CommitInfo(**{k: row[k] for k in commit_info_fields})
+        # Create SourceInfo from row data
+        source_info = SourceInfo(
+            provider=row["provider"] if "provider" in row.keys() else "github",
+            repository_id=row["repo"],
+            repository_full_name=row["repo"],
+            repository_url=f"https://github.com/{row['repo']}",
+            source_kind="review_request" if row["pr"] else "branch",
+            source_branch=row["target_branch"],  # For now, use target_branch as source_branch
+            target_branch=row["target_branch"],
+            commit_sha=row["git_commit"],
+            clone_url=f"https://github.com/{row['repo']}.git",
+            review_id=str(row["pr"]) if row["pr"] else None,
+            review_url=f"https://github.com/{row['repo']}/pull/{row['pr']}" if row["pr"] else None
+        )
+        
+        # For backward compatibility, we still create a minimal CommitInfo-like structure
+        # but this should be phased out
         return Build(
-            commit_info=commit_info,
-            **{k: row[k] for k in row.keys() if k not in commit_info_fields},
+            source_info=source_info,
+            **{k: row[k] for k in row.keys() if k not in {"repo", "target_branch", "pr", "git_commit", "provider"}},
         )
 
     def reset(self) -> None:
@@ -55,6 +69,7 @@ class BuildsDb:
             "CREATE TABLE builds ("
             "    name TEXT NOT NULL PRIMARY KEY, "
             "    deployment_name TEXT NOT NULL, "
+            "    provider TEXT NOT NULL DEFAULT 'github', "
             "    repo TEXT NOT NULL, "
             "    target_branch TEXT NOT NULL, "
             "    pr INTEGER, "
@@ -107,12 +122,18 @@ class BuildsDb:
         prev_build = self.get(build.name)
         if prev_build == build:
             return  # no change
+            
+        # Extract data from SourceInfo for database storage
+        source_info = build.source_info
+        pr_int = int(source_info.review_id) if source_info.review_id and source_info.review_id.isdigit() else None
+        
         with self._con:
             self._con.execute(
                 "INSERT OR REPLACE INTO builds "
                 "("
                 "    name,"
                 "    deployment_name,"
+                "    provider,"
                 "    repo,"
                 "    target_branch,"
                 "    pr,"
@@ -123,14 +144,15 @@ class BuildsDb:
                 "    last_scaled, "
                 "    created"
                 ") "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     build.name,
                     build.deployment_name,
-                    build.commit_info.repo,
-                    build.commit_info.target_branch,
-                    build.commit_info.pr,
-                    build.commit_info.git_commit,
+                    source_info.provider,
+                    source_info.repository_id,
+                    source_info.target_branch or "",
+                    pr_int,
+                    source_info.commit_sha,
                     build.desired_replicas,
                     build.status,
                     build.init_status,

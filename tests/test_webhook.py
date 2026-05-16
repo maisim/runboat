@@ -4,7 +4,7 @@ from pytest_mock import MockerFixture
 
 from runboat.app import app
 from runboat.controller import controller
-from runboat.github import CommitInfo
+from runboat.vcs_client import SourceInfo
 from runboat.webhooks import _verify_github_signature
 
 client = TestClient(app)
@@ -24,14 +24,22 @@ def test_webhook_github_push(mocker: MockerFixture) -> None:
         },
     )
     response.raise_for_status()
+    expected_source_info = SourceInfo(
+        provider="github",
+        repository_id="oca/mis-builder",
+        repository_full_name="oca/mis-builder",
+        repository_url="https://github.com/oca/mis-builder",
+        source_kind="branch",
+        source_branch=None,
+        target_branch="15.0",
+        commit_sha="abcde",
+        clone_url="https://github.com/oca/mis-builder.git",
+        review_id=None,
+        review_url=None,
+    )
     mock.assert_called_with(
         controller.deploy_commit,
-        CommitInfo(
-            repo="oca/mis-builder",
-            target_branch="15.0",
-            pr=None,
-            git_commit="abcde",
-        ),
+        expected_source_info,
     )
 
 
@@ -67,22 +75,31 @@ def test_webhook_github_pr(action: str, mocker: MockerFixture) -> None:
                 "base": {
                     "ref": "15.0",
                 },
-                "number": 381,
                 "head": {
+                    "ref": "feature-branch",
                     "sha": "abcde",
                 },
+                "number": 381,
             },
         },
     )
     response.raise_for_status()
+    expected_source_info = SourceInfo(
+        provider="github",
+        repository_id="oca/mis-builder",
+        repository_full_name="oca/mis-builder",
+        repository_url="https://github.com/oca/mis-builder",
+        source_kind="review_request",
+        source_branch="feature-branch",
+        target_branch="15.0",
+        commit_sha="abcde",
+        clone_url="https://github.com/oca/mis-builder.git",
+        review_id="381",
+        review_url="https://github.com/oca/mis-builder/pull/381",
+    )
     mock.assert_called_with(
         controller.deploy_commit,
-        CommitInfo(
-            repo="oca/mis-builder",
-            target_branch="15.0",
-            pr=381,
-            git_commit="abcde",
-        ),
+        expected_source_info,
     )
 
 

@@ -23,10 +23,16 @@ labels:
     includeTemplates: true
 
 commonAnnotations:
-  runboat/repo: "{{ commit_info.repo }}"
-  runboat/target-branch: "{{ commit_info.target_branch }}"
-  runboat/pr: "{{ commit_info.pr if commit_info.pr else '' }}"
-  runboat/git-commit: "{{ commit_info.git_commit }}"
+  runboat/provider: "{{ source_info.provider }}"
+  runboat/repository-id: "{{ source_info.repository_id }}"
+  runboat/repository-url: "{{ source_info.repository_url if source_info.repository_url else '' }}"
+  runboat/repository-full-name: "{{ source_info.repository_full_name if source_info.repository_full_name else '' }}"
+  runboat/source-kind: "{{ source_info.source_kind }}"
+  runboat/source-branch: "{{ source_info.source_branch if source_info.source_branch else '' }}"
+  runboat/target-branch: "{{ source_info.target_branch }}"
+  runboat/review-id: "{{ source_info.review_id if source_info.review_id else '' }}"
+  runboat/commit-sha: "{{ source_info.commit_sha }}"
+  runboat/clone-url: "{{ source_info.clone_url }}"
 
 images:
   - name: odoo
@@ -48,8 +54,8 @@ configMapGenerator:
     literals:
       - PGDATABASE={{ build_name }}
       - ADDONS_DIR=/mnt/data/odoo-addons-dir
-      - RUNBOAT_GIT_REPO={{ commit_info.repo }}
-      - RUNBOAT_GIT_REF={{ commit_info.git_commit }}
+      - RUNBOAT_GIT_REPO={{ source_info.repository_id }}
+      - RUNBOAT_GIT_REF={{ source_info.commit_sha }}
       {%- for key, value in build_env.items() %}
       - {{ key }}={{ value }}
       {%- endfor %}

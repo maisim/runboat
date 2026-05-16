@@ -2,8 +2,8 @@ import datetime
 from unittest.mock import MagicMock
 
 from runboat.db import BuildsDb, SortOrder
-from runboat.github import CommitInfo
 from runboat.models import Build, BuildInitStatus, BuildStatus, Repo
+from runboat.vcs_client import SourceInfo
 
 
 def _make_build(
@@ -17,15 +17,23 @@ def _make_build(
     last_scaled: datetime.datetime | None = None,
     created: datetime.datetime | None = None,
 ) -> Build:
+    """Create a Build object with SourceInfo for testing."""
     name = name or "build-a"
     return Build(
         name=name,
         deployment_name=name + "-odoo",
-        commit_info=CommitInfo(
-            repo=repo or "oca/mis-builder",
+        source_info=SourceInfo(
+            provider="github",
+            repository_id=repo or "oca/mis-builder",
+            repository_full_name=repo or "oca/mis-builder",
+            repository_url=f"https://github.com/{repo or 'oca/mis-builder'}",
+            source_kind="review_request" if pr else "branch",
+            source_branch=target_branch or "15.0",
             target_branch=target_branch or "15.0",
-            pr=pr or None,
-            git_commit="0d35a10f161b410f2baa3d416a338d191b6dabc0",
+            commit_sha="0d35a10f161b410f2baa3d416a338d191b6dabc0",
+            clone_url=f"https://github.com/{repo or 'oca/mis-builder'}.git",
+            review_id=str(pr) if pr else None,
+            review_url=f"https://github.com/{repo or 'oca/mis-builder'}/pull/{pr}" if pr else None,
         ),
         status=status or BuildStatus.starting,
         init_status=init_status or BuildInitStatus.todo,
@@ -66,19 +74,19 @@ def test_get_for_commit() -> None:
     db.add(build)
     assert (
         db.get_for_commit(
-            build.commit_info.repo,
-            build.commit_info.target_branch,
-            build.commit_info.pr,
-            git_commit=build.commit_info.git_commit,
+            build.source_info.repository_id,
+            build.source_info.target_branch or "",
+            int(build.source_info.review_id) if build.source_info.review_id else None,
+            git_commit=build.source_info.commit_sha,
         )
         == build
     )
     assert (
         db.get_for_commit(
             "not-a-repo",
-            build.commit_info.target_branch,
-            build.commit_info.pr,
-            git_commit=build.commit_info.git_commit,
+            build.source_info.target_branch or "",
+            int(build.source_info.review_id) if build.source_info.review_id else None,
+            git_commit=build.source_info.commit_sha,
         )
         is None
     )

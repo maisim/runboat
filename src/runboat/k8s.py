@@ -19,7 +19,7 @@ from kubernetes.client.models.v1_deployment import V1Deployment
 from kubernetes.client.models.v1_job import V1Job
 from pydantic import BaseModel
 
-from .github import CommitInfo
+from .models import SourceInfo
 from .settings import BuildSettings, settings
 from .utils import sync_to_async, sync_to_async_iterator
 
@@ -148,7 +148,7 @@ class DeploymentVars(BaseModel):
     build_name: str
     build_slug: str
     build_domain: str
-    commit_info: CommitInfo
+    source_info: SourceInfo  # Replaced commit_info with source_info
     image_name: str
     image_tag: str
     build_env: dict[str, str]
@@ -160,9 +160,14 @@ def make_deployment_vars(
     mode: DeploymentMode,
     build_name: str,
     slug: str,
-    commit_info: CommitInfo,
+    source_info: SourceInfo,  # Replaced commit_info: CommitInfo
     build_settings: BuildSettings,
 ) -> DeploymentVars:
+    """Create DeploymentVars from build parameters.
+
+    This function translates the generic SourceInfo into deployment variables
+    used for rendering Kubernetes template files.
+    """
     image_name, image_tag = _split_image_name_tag(build_settings.image)
     return DeploymentVars(
         mode=mode,
@@ -170,7 +175,7 @@ def make_deployment_vars(
         build_name=build_name,
         build_slug=slug,
         build_domain=settings.build_domain,
-        commit_info=commit_info,
+        source_info=source_info,  # Updated field name
         image_name=image_name,
         image_tag=image_tag,
         build_env=settings.build_env | build_settings.env,
