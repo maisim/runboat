@@ -10,12 +10,12 @@ from sse_starlette.sse import EventSourceResponse
 from starlette.status import HTTP_404_NOT_FOUND
 
 from . import models
-from .github_client import GithubClient
 from .controller import Controller, controller
 from .db import SortOrder
 from .deps import authenticated
 from .models import SourceInfo
 from .settings import settings
+from .vcs_client import get_vcs_client
 
 router = APIRouter()
 
@@ -104,13 +104,11 @@ async def undeploy_builds(
 )
 async def trigger_branch(repo: str, branch: str) -> None:
     """Trigger build for a branch."""
-    # Create a GithubClient instance
-    github_client = GithubClient(settings)
-    # Get source info using the new client
-    source_info = await github_client.get_source_info_from_repo_details({
+    vcs_client = get_vcs_client("github", settings)
+    source_info = await vcs_client.get_source_info_from_repo_details({
         "repo": repo,
         "target_branch": branch,
-        "commit_sha": ""  # This will be filled by the client
+        "commit_sha": "",
     })
     await controller.deploy_commit(source_info)
 
@@ -121,13 +119,11 @@ async def trigger_branch(repo: str, branch: str) -> None:
 )
 async def trigger_pull(repo: str, pr: int) -> None:
     """Trigger build for a pull request."""
-    # Create a GithubClient instance
-    github_client = GithubClient(settings)
-    # Get source info using the new client
-    source_info = await github_client.get_source_info_from_repo_details({
+    vcs_client = get_vcs_client("github", settings)
+    source_info = await vcs_client.get_source_info_from_repo_details({
         "repo": repo,
         "pr": pr,
-        "commit_sha": ""  # This will be filled by the client
+        "commit_sha": "",
     })
     await controller.deploy_commit(source_info)
 
