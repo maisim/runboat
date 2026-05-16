@@ -263,8 +263,8 @@ class Controller:
                 await build.undeploy()
 
     async def _preflight_check(self) -> None:
-        """Validate existing deployments use the v2 annotation schema."""
-        _logger.info("Running v2 schema preflight check.")
+        """Validate existing deployments use the v3 annotation schema."""
+        _logger.info("Running v3 schema preflight check.")
         try:
             from . import k8s as k8s_module
             appsv1 = __import__("kubernetes", fromlist=["client"]).client.AppsV1Api()
@@ -286,7 +286,7 @@ class Controller:
                 missing = [k for k in required if k not in annotations]
                 if missing:
                     _logger.warning(
-                        "Build %s (%s) is missing v2 annotations: %s. "
+                        "Build %s (%s) is missing v3 annotations: %s. "
                         "Consider rebuilding this build with the current version.",
                         build_name, dep.metadata.name, missing,
                     )
@@ -296,7 +296,7 @@ class Controller:
     async def start(self) -> None:
         _logger.info("Starting controller tasks.")
 
-        # Preflight: validate existing deployments use the v2 annotation schema.
+        # Preflight: validate existing deployments use the v3 annotation schema.
         await self._preflight_check()
 
         async def walking_dead(func: Callable[..., Awaitable[Any]]) -> None:

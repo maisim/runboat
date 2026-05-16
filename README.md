@@ -165,7 +165,7 @@ actually deploy. It expects the following to hold true:
   `runboat/init-status=todo` label, as well as a `runboat/cleanup` finalizer;
 - the intialization job and pods have a `runboat/job-kind=initialize` label;
 - the cleanup job and pods have a `runboat/job-kind=cleanup` label.
-- the following annotations are set on deployments (v2 schema):
+- the following annotations are set on deployments (v3 schema):
 
   - `runboat/provider`: VCS provider name (e.g. `github`, `gitlab`);
   - `runboat/repository-id`: provider-scoped repository identifier;

@@ -141,7 +141,7 @@ class Build(BaseModel):
                 review_url=annotations.get("runboat/review-url"),
             )
         except KeyError as e:
-            raise ValueError(f"Required v2.0 source annotation missing in deployment: {e}. Cannot construct Build.")
+            raise ValueError(f"Required v3.0 source annotation missing in deployment: {e}. Cannot construct Build.")
 
         return Build(
             name=deployment.metadata.labels.get("runboat/build", ""),

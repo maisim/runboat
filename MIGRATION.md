@@ -1,15 +1,15 @@
-# Migration Guide: Runboat v1 to v2
+# Migration Guide: Runboat v2 to v3
 
-This guide covers the breaking changes introduced in Runboat v2 and how to
+This guide covers the breaking changes introduced in Runboat v3 and how to
 migrate existing deployments, configuration, and webhooks.
 
 ## Overview
 
-Runboat v2 introduces a provider-neutral VCS abstraction layer. GitHub-specific
+Runboat v3 introduces a provider-neutral VCS abstraction layer. GitHub-specific
 concepts (`CommitInfo`, `runboat/pr`, `runboat/repo`, etc.) have been replaced
 with generic equivalents (`SourceInfo`, `runboat/review-id`,
-`runboat/repository-id`, etc.). This is a **breaking change** — v1 Kubernetes
-resources are **not** compatible with the v2 controller.
+`runboat/repository-id`, etc.). This is a **breaking change** — v2 Kubernetes
+resources are **not** compatible with the v3 controller.
 
 ## 1. Configuration Migration
 
@@ -40,7 +40,7 @@ metadata:
     runboat/git-commit: "abc123..."
 ```
 
-### New Annotation Schema (v2)
+### New Annotation Schema (v3)
 
 ```yaml
 metadata:
@@ -75,17 +75,17 @@ v1 resources **will not** be automatically upgraded. You have two options:
     kubectl delete jobs -n runboat-builds -l runboat/build
     kubectl delete pods -n runboat-builds -l runboat/build
     ```
-3.  Deploy the v2 controller.
+3.  Deploy the v3 controller.
 4.  Existing builds will be recreated on the next webhook event or manual trigger.
 
 **Option B — Selective cleanup**
-1.  Keep the v1 controller running until active builds finish.
-2.  Stop the v1 controller.
+1.  Keep the v2 controller running until active builds finish.
+2.  Stop the v2 controller.
 3.  Delete remaining build resources as above.
-4.  Deploy the v2 controller.
+4.  Deploy the v3 controller.
 
-> **Note:** The v2 controller's preflight check will warn about any resources
-> with missing v2 annotations, but it will not automatically delete them.
+> **Note:** The v3 controller's preflight check will warn about any resources
+> with missing v3 annotations, but it will not automatically delete them.
 
 ## 3. Webhook Reconfiguration
 
@@ -145,11 +145,11 @@ The `commit_info.pr` → `source_info.review_id`
 
 ## 5. Rollback
 
-If you need to roll back to v1:
-1.  Stop the v2 controller.
-2.  Restore the v1 configuration (old environment variable names).
+If you need to roll back to v2:
+1.  Stop the v3 controller.
+2.  Restore the v2 configuration (old environment variable names).
 3.  Revert the `RUNBOAT_VCS_API_TOKEN` to `RUNBOAT_GITHUB_TOKEN`.
-4.  Deploy the v1 controller.
-5.  v2-annotated resources can be read by v1 components at the controller's
+4.  Deploy the v2 controller.
+5.  v3-annotated resources can be read by v2 components at the controller's
     discretion, but the old annotation keys must be present for full
     compatibility.

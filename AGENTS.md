@@ -18,7 +18,7 @@ This repository implements Runboat, a Kubernetes operator for managing Odoo buil
     4.  `stop` (updates resources before scaling down to 0)
     5.  `cleanup` (job: drops database and deletes resources)
 *   **Job Labeling:** Initialization jobs must have the label `runboat/job-kind=initialize`, and cleanup jobs must have the label `runboat/job-kind=cleanup`.
-*   **Deployment Annotations:** Deployments require specific annotations to track metadata (v2 schema):
+*   **Deployment Annotations:** Deployments require specific annotations to track metadata (v3 schema):
     *   `runboat/provider`: VCS provider name (e.g. `github`, `gitlab`).
     *   `runboat/repository-id`: provider-scoped repository identifier.
     *   `runboat/repository-url`: permanent repository URL.
