@@ -7,21 +7,21 @@ A simple Odoo runbot lookalike on kubernetes. Main goal is replacing the OCA run
 ## Principle of operation
 
 This program is a Kubernetes operator that manages Odoo instances with pre-installed
-addons. The addons come from commits on branches and pull requests in GitHub
-repositories. A deployment of a given commit of a given branch or pull request of a
-given repository is known as a build.
+addons. The addons come from commits on branches and review requests (pull/merge
+requests) in VCS repositories (GitHub, GitLab, etc.). A deployment of a given commit of
+a given branch or review request of a given repository is known as a build.
 
 Runboat has the following main components:
 
 - An in-memory database of deployed builds, with their current status.
 - A REST API to list builds and trigger new deployments as well as start, stop, redeploy
   or undeploy builds.
-- A GitHub webhook to automatically trigger new builds on pushes to branches and pull
+- VCS webhooks to automatically trigger new builds on pushes to branches and review
   requests of supported repositories and branches (configured via regular expressions).
 - A controller that performs the following tasks:
 
   - monitor deployments in a kubernetes namespaces to maintain the in-memory database;
-  - on new deployments, trigger an initialization job to check out the GitHub repo,
+  - on new deployments, trigger an initialization job to check out the repository,
     install dependencies, create the corresponding postgres database and install the
     addons in it;
   - initialization jobs are started concurrently up to a configured limit;
@@ -76,7 +76,46 @@ in a different cluster.
 
 A typical deployment looks like this.
 
-![Deployment diagram](./docs/deployment/deployment.png)
+```mermaid
+graph TD
+    subgraph "Internet"
+        WC[Webhook Events<br/>push, pull_request<br/>Push Hook, Merge Request Hook]
+        DEV[Developer]
+    end
+
+    subgraph "VCS Providers"
+        GH[GitHub<br/>api.github.com]
+        GL[GitLab<br/>gitlab.com]
+    end
+
+    subgraph "Runboat Controller"
+        API["REST API<br/>(FastAPI)"]
+        WH["Webhook Handlers<br/>/webhooks/github<br/>/webhooks/gitlab"]
+        CTL["Controller<br/>(background tasks)"]
+        DB[("In-memory<br/>Build DB")]
+    end
+
+    subgraph "Kubernetes Cluster"
+        K8S_NS["runboat-builds namespace"]
+        subgraph "Build Resources"
+            DEP[Deployment]
+        end
+    end
+
+    subgraph "External Services"
+        PG[("PostgreSQL")]
+    end
+
+    WC -->|"Events"| WH
+    DEV -->|"API calls"| API
+    WH -->|"deploy_commit"| CTL
+    API -->|"trigger/start/stop"| CTL
+    CTL -->|"read/write"| DB
+    CTL <-->|"kubectl apply<br/>k8s watch"| K8S_NS
+    CTL -->|"get commit info,<br/>set commit status"| GH
+    CTL -->|"get commit info,<br/>set commit status"| GL
+    K8S_NS -.->|"connect"| PG
+```
 
 The wiki has an example [docker-compose
 configuration](https://github.com/sbidoul/runboat/wiki/example-docker-compose) to get
