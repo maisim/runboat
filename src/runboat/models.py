@@ -511,10 +511,12 @@ class Repo(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     name: str
+    provider: str = "github"
 
     @property
     def link(self) -> str:
-        return f"https://github.com/{self.name}"
+        domain = "github.com" if self.provider == "github" else f"{self.provider}.com"
+        return f"https://{domain}/{self.name}"
 
 
 # Rebuild DeploymentVars to resolve the forward reference to SourceInfo,

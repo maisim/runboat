@@ -254,8 +254,10 @@ class BuildsDb:
         return [self._build_from_row(row) for row in rows]
 
     def repos(self) -> list[Repo]:
-        rows = self._con.execute("SELECT DISTINCT repo FROM builds ORDER BY repo")
-        return [Repo(name=row[0]) for row in rows]
+        rows = self._con.execute(
+            "SELECT DISTINCT repo, provider FROM builds ORDER BY repo"
+        ).fetchall()
+        return [Repo(name=row[0], provider=row[1]) for row in rows]
 
     def search(
         self,
