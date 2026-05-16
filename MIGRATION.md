@@ -45,16 +45,23 @@ metadata:
 ```yaml
 metadata:
   annotations:
-    runboat/provider: "github"
-    runboat/repository-id: "owner/repo"
-    runboat/repository-url: "https://github.com/owner/repo"
-    runboat/source-kind: "review_request"
-    runboat/source-branch: "feature-branch"
-    runboat/target-branch: "15.0"
-    runboat/review-id: "123"
-    runboat/commit-sha: "abc123..."
-    runboat/clone-url: "https://github.com/owner/repo.git"
+    runboat/provider: "<vcs-provider>"       # e.g. "github", "gitlab"
+    runboat/repository-id: "<repo-id>"       # e.g. "owner/repo" or "group/subgroup/project"
+    runboat/repository-url: "<repo-url>"     # permanent URL to the repository
+    runboat/source-kind: "review_request"    # "branch" or "review_request"
+    runboat/source-branch: "feature-branch"  # source branch name
+    runboat/target-branch: "15.0"            # destination branch name
+    runboat/review-id: "123"                 # review request identifier (string)
+    runboat/commit-sha: "abc123..."          # full commit SHA
+    runboat/clone-url: "<clone-url>"         # clone URL for the repository
 ```
+
+Provider-specific examples:
+
+| Provider | `repository-url` | `clone-url` |
+|----------|-----------------|-------------|
+| GitHub   | `https://github.com/owner/repo` | `https://github.com/owner/repo.git` |
+| GitLab   | `https://gitlab.com/group/project` | `https://gitlab.com/group/project.git` |
 
 ### Migration Strategy
 
@@ -87,10 +94,19 @@ v1 resources **will not** be automatically upgraded. You have two options:
 The `/webhooks/github` endpoint still accepts the same payload format. No
 changes are required to your GitHub webhook configuration.
 
+### GitLab Webhooks
+
+The new `/webhooks/gitlab` endpoint accepts GitLab webhook payloads for
+`Push Hook` and `Merge Request Hook` events. Configure your GitLab repository
+to send webhooks to `https://your-runboat-instance/webhooks/gitlab` with the
+webhook secret token matching `RUNBOAT_VCS_WEBHOOK_SECRET` (or `RUNBOAT_VCS_API_TOKEN`
+for token-based verification).
+
 ### Internal Changes
 
-The webhook handler now constructs `SourceInfo` objects instead of
-`CommitInfo`. The payload parsing logic remains unchanged for GitHub.
+Webhook handlers now construct `SourceInfo` objects instead of
+`CommitInfo`. The payload parsing logic for each provider remains specific
+to that provider's payload format.
 
 ## 4. REST API Changes
 
@@ -108,17 +124,17 @@ The build JSON response now uses `source_info` instead of `commit_info`:
 {
   "name": "b...",
   "source_info": {
-    "provider": "github",
-    "repository_id": "owner/repo",
+    "provider": "<vcs-provider>",
+    "repository_id": "<repo-id>",
     "repository_full_name": null,
-    "repository_url": "https://github.com/owner/repo",
+    "repository_url": "<repo-url>",
     "source_kind": "review_request",
     "source_branch": "feature",
     "target_branch": "main",
     "commit_sha": "abc...",
-    "clone_url": "https://github.com/owner/repo.git",
+    "clone_url": "<clone-url>",
     "review_id": "123",
-    "review_url": "https://github.com/owner/repo/pull/123"
+    "review_url": "<review-url>"
   },
   ...
 }

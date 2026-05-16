@@ -32,3 +32,4 @@ This repository implements Runboat, a Kubernetes operator for managing Odoo buil
 
 ## Tooling
 *   The primary interaction point for starting a build is via the REST API (documented at `/docs`).
+*   Provider-specific documentation is in `docs/providers/` (e.g. `docs/providers/github.md`, `docs/providers/gitlab.md`).
