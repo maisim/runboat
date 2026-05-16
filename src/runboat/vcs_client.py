@@ -35,3 +35,11 @@ class AbstractVCSClient(abc.ABC):
         using the VCS provider's API.
         """
         ...
+
+
+def get_vcs_client(provider: str, settings) -> AbstractVCSClient:
+    """Factory: return the appropriate VCS client for the given provider."""
+    if provider == "github":
+        from .github_client import GithubClient
+        return GithubClient(settings)
+    raise ValueError(f"Unsupported VCS provider: {provider}")
