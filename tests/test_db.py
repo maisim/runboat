@@ -2,7 +2,7 @@ import datetime
 from unittest.mock import MagicMock
 
 from runboat.db import BuildsDb, SortOrder
-from runboat.models import Build, BuildInitStatus, BuildStatus, Repo, SourceInfo
+from runboat.models import Build, BuildInitStatus, BuildStatus, SourceInfo
 
 
 def _make_build(
@@ -174,7 +174,12 @@ def test_repos() -> None:
     db = BuildsDb()
     db.add(_make_build(name="b1", repo="oca/repo1"))
     db.add(_make_build(name="b2", repo="oca/repo2"))
-    assert db.repos() == [Repo(name="oca/repo1"), Repo(name="oca/repo2")]
+    repos = db.repos()
+    assert len(repos) == 2
+    assert repos[0].name == "oca/repo1"
+    assert repos[0].provider == "github"
+    assert repos[1].name == "oca/repo2"
+    assert repos[1].provider == "github"
 
 
 def test_oldest_started() -> None:

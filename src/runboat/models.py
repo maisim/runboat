@@ -512,11 +512,16 @@ class Repo(BaseModel):
 
     name: str
     provider: str = "github"
+    url: str | None = None
 
     @property
     def link(self) -> str:
-        domain = "github.com" if self.provider == "github" else f"{self.provider}.com"
-        return f"https://{domain}/{self.name}"
+        if self.url:
+            return self.url
+        domain = {"github": "github.com", "gitlab": "gitlab.com"}.get(self.provider)
+        if domain:
+            return f"https://{domain}/{self.name}"
+        return f"https://{self.provider}.com/{self.name}"
 
 
 # Rebuild DeploymentVars to resolve the forward reference to SourceInfo,

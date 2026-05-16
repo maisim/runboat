@@ -65,7 +65,7 @@ class BuildsDb:
         
         return Build(
             source_info=source_info,
-            **{k: row[k] for k in row.keys() if k not in {"repo", "target_branch", "pr", "git_commit", "provider"}},
+            **{k: row[k] for k in row.keys() if k not in {"repo", "target_branch", "pr", "git_commit", "provider", "repository_url"}},
         )
 
     def reset(self) -> None:
@@ -80,6 +80,7 @@ class BuildsDb:
             "    target_branch TEXT NOT NULL, "
             "    pr INTEGER, "
             "    git_commit TEXT NOT NULL, "
+            "    repository_url TEXT, "
             "    desired_replicas INTEGER NOT NULL,"
             "    status TEXT NOT NULL, "
             "    init_status TEXT NOT NULL, "
@@ -144,13 +145,14 @@ class BuildsDb:
                 "    target_branch,"
                 "    pr,"
                 "    git_commit,"
+                "    repository_url,"
                 "    desired_replicas,"
                 "    status,"
                 "    init_status, "
                 "    last_scaled, "
                 "    created"
                 ") "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     build.name,
                     build.deployment_name,
@@ -159,6 +161,7 @@ class BuildsDb:
                     source_info.target_branch or "",
                     pr_int,
                     source_info.commit_sha,
+                    source_info.repository_url,
                     build.desired_replicas,
                     build.status,
                     build.init_status,
@@ -255,9 +258,14 @@ class BuildsDb:
 
     def repos(self) -> list[Repo]:
         rows = self._con.execute(
-            "SELECT DISTINCT repo, provider FROM builds ORDER BY repo"
+            "SELECT repo, provider, repository_url FROM builds "
+            "GROUP BY repo, provider "
+            "ORDER BY repo"
         ).fetchall()
-        return [Repo(name=row[0], provider=row[1]) for row in rows]
+        return [
+            Repo(name=row[0], provider=row[1], url=row[2])
+            for row in rows
+        ]
 
     def search(
         self,
