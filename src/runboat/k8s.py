@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import logging
 import os
@@ -9,7 +11,7 @@ from contextlib import contextmanager
 from enum import Enum
 from importlib import resources
 from pathlib import Path
-from typing import Any, NotRequired, TypedDict, cast
+from typing import TYPE_CHECKING, Any, NotRequired, TypedDict, cast
 
 import urllib3
 from jinja2 import Template
@@ -19,9 +21,11 @@ from kubernetes.client.models.v1_deployment import V1Deployment
 from kubernetes.client.models.v1_job import V1Job
 from pydantic import BaseModel
 
-from .models import SourceInfo
 from .settings import BuildSettings, settings
 from .utils import sync_to_async, sync_to_async_iterator
+
+if TYPE_CHECKING:
+    from .models import SourceInfo
 
 _logger = logging.getLogger(__name__)
 

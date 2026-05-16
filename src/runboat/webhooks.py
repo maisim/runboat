@@ -5,8 +5,8 @@ from typing import Annotated
 from fastapi import APIRouter, BackgroundTasks, Header, Request
 
 from .controller import controller
+from .models import SourceInfo
 from .settings import settings
-from .vcs_client import SourceInfo
 
 _logger = logging.getLogger(__name__)
 

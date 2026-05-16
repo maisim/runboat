@@ -3,7 +3,7 @@ from pytest_mock import MockerFixture
 
 from runboat.app import app
 from runboat.controller import controller
-from runboat.vcs_client import SourceInfo
+from runboat.models import SourceInfo
 
 client = TestClient(app)
 

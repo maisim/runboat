@@ -1,7 +1,10 @@
-import abc
-from typing import Optional
+from __future__ import annotations
 
-from runboat.models import SourceInfo
+import abc
+from typing import TYPE_CHECKING, Optional
+
+if TYPE_CHECKING:
+    from runboat.models import SourceInfo
 
 
 class AbstractVCSClient(abc.ABC):

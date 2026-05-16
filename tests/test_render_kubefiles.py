@@ -1,6 +1,6 @@
 from runboat.k8s import DeploymentMode, _render_kubefiles, make_deployment_vars
 from runboat.settings import BuildSettings, settings
-from runboat.vcs_client import SourceInfo
+from runboat.models import SourceInfo
 
 EXPECTED = """\
 resources:

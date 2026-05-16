@@ -4,7 +4,7 @@ from pytest_mock import MockerFixture
 
 from runboat.app import app
 from runboat.controller import controller
-from runboat.vcs_client import SourceInfo
+from runboat.models import SourceInfo
 from runboat.webhooks import _verify_github_signature
 
 client = TestClient(app)

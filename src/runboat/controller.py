@@ -4,6 +4,7 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 from . import k8s
+from .db import BuildsDb
 from .models import Build, BuildEvent, BuildInitStatus, BuildStatus, SourceInfo
 from .settings import settings
 

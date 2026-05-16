@@ -2,8 +2,7 @@ import datetime
 from unittest.mock import MagicMock
 
 from runboat.db import BuildsDb, SortOrder
-from runboat.models import Build, BuildInitStatus, BuildStatus, Repo
-from runboat.vcs_client import SourceInfo
+from runboat.models import Build, BuildInitStatus, BuildStatus, Repo, SourceInfo
 
 
 def _make_build(

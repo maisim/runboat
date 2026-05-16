@@ -515,3 +515,8 @@ class Repo(BaseModel):
     @property
     def link(self) -> str:
         return f"https://github.com/{self.name}"
+
+
+# Rebuild DeploymentVars to resolve the forward reference to SourceInfo,
+# which is imported under TYPE_CHECKING in k8s.py to avoid circular imports.
+k8s.DeploymentVars.model_rebuild()

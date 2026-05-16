@@ -4,8 +4,9 @@ from typing import Any, Optional
 import httpx
 
 from .exceptions import NotFoundOnGitHub
+from .models import SourceInfo
 from .settings import settings
-from .vcs_client import AbstractVCSClient, SourceInfo
+from .vcs_client import AbstractVCSClient
 
 _logger = logging.getLogger(__name__)
 

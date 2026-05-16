@@ -5,8 +5,9 @@ from urllib.parse import quote
 import httpx
 
 from .exceptions import ClientError
+from .models import SourceInfo
 from .settings import settings
-from .vcs_client import AbstractVCSClient, SourceInfo
+from .vcs_client import AbstractVCSClient
 
 _logger = logging.getLogger(__name__)
 
