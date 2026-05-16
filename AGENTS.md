@@ -18,11 +18,17 @@ This repository implements Runboat, a Kubernetes operator for managing Odoo buil
     4.  `stop` (updates resources before scaling down to 0)
     5.  `cleanup` (job: drops database and deletes resources)
 *   **Job Labeling:** Initialization jobs must have the label `runboat/job-kind=initialize`, and cleanup jobs must have the label `runboat/job-kind=cleanup`.
-*   **Deployment Annotations:** Deployments require specific annotations to track metadata:
-    *   `runboat/repo`: owner/repo format.
-    *   `runboat/target-branch`: branch or PR target branch.
-    *   `runboat/pr`: PR number (if applicable).
-    *   `runboat/git-commit`: commit SHA.
+*   **Deployment Annotations:** Deployments require specific annotations to track metadata (v2 schema):
+    *   `runboat/provider`: VCS provider name (e.g. `github`, `gitlab`).
+    *   `runboat/repository-id`: provider-scoped repository identifier.
+    *   `runboat/repository-url`: permanent repository URL.
+    *   `runboat/source-kind`: `branch` or `review_request`.
+    *   `runboat/source-branch`: source branch name.
+    *   `runboat/target-branch`: target/destination branch name.
+    *   `runboat/commit-sha`: commit SHA.
+    *   `runboat/clone-url`: clone URL used by the CI system.
+    *   `runboat/review-id`: review request identifier (string), if applicable.
+    *   `runboat/review-url`: URL to the review request, if applicable.
 
 ## Tooling
 *   The primary interaction point for starting a build is via the REST API (documented at `/docs`).

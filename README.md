@@ -127,12 +127,18 @@ actually deploy. It expects the following to hold true:
   `runboat/init-status=todo` label, as well as a `runboat/cleanup` finalizer;
 - the intialization job and pods have a `runboat/job-kind=initialize` label;
 - the cleanup job and pods have a `runboat/job-kind=cleanup` label.
-- the following annotations are set on deployments:
+- the following annotations are set on deployments (v2 schema):
 
-  - `runboat/repo`: the repository in owner/repo format;
-  - `runboat/target-branch`: the branch or pull request target branch;
-  - `runboat/pr`: the pull request number if this build is for a pull request;
-  - `runboat/git-commit`: the commit sha.
+  - `runboat/provider`: VCS provider name (e.g. `github`, `gitlab`);
+  - `runboat/repository-id`: provider-scoped repository identifier;
+  - `runboat/repository-url`: permanent repository URL;
+  - `runboat/source-kind`: `branch` or `review_request`;
+  - `runboat/source-branch`: source branch name;
+  - `runboat/target-branch`: target/destination branch name;
+  - `runboat/commit-sha`: commit SHA;
+  - `runboat/clone-url`: clone URL used by the CI system;
+  - `runboat/review-id`: review request identifier (string), if applicable;
+  - `runboat/review-url`: URL to the review request, if applicable.
 
 - the home page of a running build is exposed at `http://{build_slug}.{build_domain}`.
 
