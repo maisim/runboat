@@ -42,4 +42,7 @@ def get_vcs_client(provider: str, settings) -> AbstractVCSClient:
     if provider == "github":
         from .github_client import GithubClient
         return GithubClient(settings)
+    if provider == "gitlab":
+        from .gitlab_client import GitlabClient
+        return GitlabClient(settings)
     raise ValueError(f"Unsupported VCS provider: {provider}")
