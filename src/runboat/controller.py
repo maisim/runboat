@@ -96,8 +96,6 @@ class Controller:
 
     async def deploy_commit(self, source_info: SourceInfo) -> None:
         """Deploy build for a commit, or do nothing if build already exist."""
-        # TODO: Update this to work with SourceInfo instead of CommitInfo
-        # For now, we'll convert SourceInfo to a format that works with existing code
         build = self.db.get_for_commit(
             repo=source_info.repository_id,
             target_branch=source_info.target_branch or "",

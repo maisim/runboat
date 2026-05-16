@@ -40,23 +40,29 @@ class BuildsDb:
 
     @classmethod
     def _build_from_row(cls, row: "sqlite3.Row") -> Build:
-        # Create SourceInfo from row data
+        # Determine provider from row (default to github for backward compatibility)
+        provider = row["provider"] if "provider" in row.keys() else "github"
+        repo = row["repo"]
+        pr = row["pr"] if "pr" in row.keys() else None
+        
+        # Build provider-specific URLs
+        repo_url = f"https://{provider}.com/{repo}" if provider in ("github", "gitlab") else None
+        clone_url = f"https://{provider}.com/{repo}.git" if provider in ("github", "gitlab") else None
+        
         source_info = SourceInfo(
-            provider=row["provider"] if "provider" in row.keys() else "github",
-            repository_id=row["repo"],
-            repository_full_name=row["repo"],
-            repository_url=f"https://github.com/{row['repo']}",
-            source_kind="review_request" if row["pr"] else "branch",
-            source_branch=row["target_branch"],  # For now, use target_branch as source_branch
+            provider=provider,
+            repository_id=repo,
+            repository_full_name=repo,
+            repository_url=repo_url,
+            source_kind="review_request" if pr else "branch",
+            source_branch=row["target_branch"],
             target_branch=row["target_branch"],
             commit_sha=row["git_commit"],
-            clone_url=f"https://github.com/{row['repo']}.git",
-            review_id=str(row["pr"]) if row["pr"] else None,
-            review_url=f"https://github.com/{row['repo']}/pull/{row['pr']}" if row["pr"] else None
+            clone_url=clone_url or "",
+            review_id=str(pr) if pr else None,
+            review_url=f"{repo_url}/pull/{pr}" if pr and repo_url else None,
         )
         
-        # For backward compatibility, we still create a minimal CommitInfo-like structure
-        # but this should be phased out
         return Build(
             source_info=source_info,
             **{k: row[k] for k in row.keys() if k not in {"repo", "target_branch", "pr", "git_commit", "provider"}},

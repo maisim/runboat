@@ -190,25 +190,30 @@ class Build(BaseModel):
     @property
     def repo_target_branch_link(self) -> str:
         """Link to the repository's target branch on the VCS provider."""
-        # Use source_info for the required repo/branch path
-        return (
+        base = self.source_info.repository_url or (
             f"https://{self.source_info.provider}.com/{self.source_info.repository_id}"
-            f"/tree/{self.source_info.target_branch}"
         )
+        return f"{base}/tree/{self.source_info.target_branch}"
 
     @property
     def repo_review_link(self) -> str | None:
         """Link to the review request (PR/MR) on the VCS provider."""
         if not self.source_info.review_id:
             return None
-        # Use provider-agnostic link construction for reviews
-        return f"https://{self.source_info.provider}.com/{self.source_info.repository_id}/reviews/{self.source_info.review_id}"
+        if self.source_info.review_url:
+            return self.source_info.review_url
+        base = self.source_info.repository_url or (
+            f"https://{self.source_info.provider}.com/{self.source_info.repository_id}"
+        )
+        return f"{base}/pull/{self.source_info.review_id}"
 
     @property
     def repo_commit_link(self) -> str:
         """Link to the specific commit on the VCS provider."""
-        # Link construction must use the primary commit SHA
-        return f"https://{self.source_info.provider}.com/{self.source_info.repository_id}/commit/{self.source_info.commit_sha[:12]}"
+        base = self.source_info.repository_url or (
+            f"https://{self.source_info.provider}.com/{self.source_info.repository_id}"
+        )
+        return f"{base}/commit/{self.source_info.commit_sha[:12]}"
 
     @property
     def webui_link(self) -> str:
@@ -233,27 +238,23 @@ class Build(BaseModel):
         cls, source_info: SourceInfo, name: str, slug: str, job_kind: k8s.DeploymentMode
     ) -> None:
         """Internal method to prepare for and handle a k8s.deploy()."""
-        # This method needs updating to work with SourceInfo
-        # For now, we'll assume a mapping from SourceInfo to the required details
         build_settings = settings.get_build_settings(
             source_info.repository_id, source_info.target_branch or ""
         )
         if build_settings:
             build_settings = build_settings[0]
         else:
-            # Handle case where no settings are found
             raise ValueError("No build settings found for repository and branch")
-        
+
         kubefiles_path = (
             build_settings.kubefiles_path or settings.build_default_kubefiles_path
         )
-        
-        # make_deployment_vars likely needs to be updated to handle SourceInfo
+
         deployment_vars = k8s.make_deployment_vars(
             job_kind,
             name,
             slug,
-            source_info,  # Pass SourceInfo instead of CommitInfo
+            source_info,
             build_settings,
         )
         await k8s.deploy(kubefiles_path, deployment_vars)
