@@ -1,6 +1,6 @@
 [build-system]
-requires = ["flit_core >=3.4,<4"]
-build-backend = "flit_core.buildapi"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "runboat"
@@ -23,7 +23,8 @@ dependencies = [
     "uvicorn",
 ]
 requires-python = "==3.13.*"
-dynamic = ["version", "description"]
+version = "0.2"
+description = "A simple Odoo runbot lookalike using kubernetes."
 
 [project.optional-dependencies]
 test = [
@@ -39,6 +40,13 @@ mypy = [
 
 [project.urls]
 Home = "https://github.com/sbidoul/runboat"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/runboat"]
+include = [
+    "src/runboat/kubefiles/",
+    "src/runboat/webui-templates/",
+]
 
 # ruff
 
@@ -90,7 +98,4 @@ init_forbid_extra = true
 init_typed = true
 warn_required_dynamic_aliases = true
 
-# pip-deepfreeze
 
-[tool.pip-deepfreeze.sync]
-extras = "test,mypy"
