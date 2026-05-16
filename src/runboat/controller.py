@@ -261,8 +261,42 @@ class Controller:
             for build in to_undeploy:
                 await build.undeploy()
 
+    async def _preflight_check(self) -> None:
+        """Validate existing deployments use the v2 annotation schema."""
+        _logger.info("Running v2 schema preflight check.")
+        try:
+            from . import k8s as k8s_module
+            appsv1 = __import__("kubernetes", fromlist=["client"]).client.AppsV1Api()
+            deployments = appsv1.list_namespaced_deployment(
+                namespace=settings.build_namespace,
+                label_selector="runboat/build",
+            ).items
+            for dep in deployments:
+                annotations = dep.metadata.annotations or {}
+                build_name = dep.metadata.labels.get("runboat/build", "unknown")
+                required = [
+                    "runboat/provider",
+                    "runboat/repository-id",
+                    "runboat/source-kind",
+                    "runboat/target-branch",
+                    "runboat/commit-sha",
+                    "runboat/clone-url",
+                ]
+                missing = [k for k in required if k not in annotations]
+                if missing:
+                    _logger.warning(
+                        "Build %s (%s) is missing v2 annotations: %s. "
+                        "Consider rebuilding this build with the current version.",
+                        build_name, dep.metadata.name, missing,
+                    )
+        except Exception as e:
+            _logger.warning("Preflight check failed (non-fatal): %s", e)
+
     async def start(self) -> None:
         _logger.info("Starting controller tasks.")
+
+        # Preflight: validate existing deployments use the v2 annotation schema.
+        await self._preflight_check()
 
         async def walking_dead(func: Callable[..., Awaitable[Any]]) -> None:
             while True:
