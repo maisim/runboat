@@ -8,10 +8,9 @@ from kubernetes.client.models.v1_deployment import V1Deployment
 from pydantic import BaseModel, ConfigDict
 
 from . import k8s
-from .github import GitHubStatusState
-from .github_client import GithubClient
 from .settings import settings
 from .utils import slugify
+from .vcs_client import get_vcs_client
 
 _logger = logging.getLogger(__name__)
 
@@ -268,10 +267,10 @@ class Build(BaseModel):
         await cls._deploy(
             source_info, name, slug, job_kind=k8s.DeploymentMode.deployment
         )
-        github_client = GithubClient(settings)
-        await github_client.set_commit_status(
+        vcs_client = get_vcs_client(source_info.provider, settings)
+        await vcs_client.set_commit_status(
             source_info,
-            GitHubStatusState.pending,
+            "pending",
             target_url=None,
         )
 
@@ -323,10 +322,10 @@ class Build(BaseModel):
             self.slug,
             job_kind=k8s.DeploymentMode.deployment,
         )
-        github_client = GithubClient(settings)
-        await github_client.set_commit_status(
+        vcs_client = get_vcs_client(self.source_info.provider, settings)
+        await vcs_client.set_commit_status(
             self.source_info,
-            GitHubStatusState.pending,
+            "pending",
             target_url=None,
         )
 
@@ -372,10 +371,10 @@ class Build(BaseModel):
             return
         _logger.info(f"Initialization job started for {self}.")
         if await self._patch(init_status=BuildInitStatus.started, desired_replicas=0):
-            github_client = GithubClient(settings)
-            await github_client.set_commit_status(
+            vcs_client = get_vcs_client(self.source_info.provider, settings)
+            await vcs_client.set_commit_status(
                 self.source_info,
-                GitHubStatusState.pending,
+                "pending",
                 target_url=self.live_link,
             )
 
@@ -393,10 +392,10 @@ class Build(BaseModel):
             job_kind=k8s.DeploymentMode.stop,
         )
         if await self._patch(init_status=BuildInitStatus.succeeded):
-            github_client = GithubClient(settings)
-            await github_client.set_commit_status(
+            vcs_client = get_vcs_client(self.source_info.provider, settings)
+            await vcs_client.set_commit_status(
                 self.source_info,
-                GitHubStatusState.success,
+                "success",
                 target_url=self.live_link,
             )
 
@@ -414,10 +413,10 @@ class Build(BaseModel):
             job_kind=k8s.DeploymentMode.stop,
         )
         if await self._patch(init_status=BuildInitStatus.failed, desired_replicas=0):
-            github_client = GithubClient(settings)
-            await github_client.set_commit_status(
+            vcs_client = get_vcs_client(self.source_info.provider, settings)
+            await vcs_client.set_commit_status(
                 self.source_info,
-                GitHubStatusState.failure,
+                "failure",
                 target_url=self.live_link,
             )
 
