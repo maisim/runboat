@@ -5,7 +5,7 @@ from enum import Enum
 from typing import Optional
 
 from kubernetes.client.models.v1_deployment import V1Deployment
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
 from . import k8s
 from .settings import settings
@@ -32,6 +32,30 @@ class SourceInfo(BaseModel):
     clone_url: str  # The clone URL used by the CI system
     review_id: str | None = None  # The unique raw ID for the review/PR/MR (must be string)
     review_url: str | None = None  # URL to the review request
+
+    @field_validator("provider")
+    @classmethod
+    def validate_provider(cls, v: str) -> str:
+        """Validate that the provider is supported."""
+        if v not in ("github", "gitlab"):
+            raise ValueError(f"Unsupported VCS provider: {v}")
+        return v.lower()
+
+    @field_validator("source_kind")
+    @classmethod
+    def validate_source_kind(cls, v: str) -> str:
+        """Validate source_kind is 'branch' or 'review_request'."""
+        if v not in ("branch", "review_request"):
+            raise ValueError(f"Invalid source_kind: {v}")
+        return v
+
+    @field_validator("commit_sha")
+    @classmethod
+    def validate_commit_sha(cls, v: str) -> str:
+        """Validate commit SHA is not empty."""
+        if not v:
+            raise ValueError("commit_sha must not be empty")
+        return v
 
 
 class BuildEvent(str, Enum):
