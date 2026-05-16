@@ -52,6 +52,7 @@ configMapGenerator:
       - ADDONS_DIR=/mnt/data/odoo-addons-dir
       - RUNBOAT_GIT_REPO=oca/mis-builder
       - RUNBOAT_GIT_REF=abcdef123456789
+      - RUNBOAT_GIT_CLONE_URL=https://github.com/oca/mis-builder.git
   - name: runboat-scripts
     files:
       - runboat-clone-and-install.sh

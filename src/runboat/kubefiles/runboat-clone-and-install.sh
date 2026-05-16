@@ -8,12 +8,15 @@ rm -fr /mnt/data/*
 # Remove addons dir, in case we are reinitializing after a previously
 # failed installation.
 rm -fr $ADDONS_DIR
+
 # Download the repository at git reference into $ADDONS_DIR.
-# We use curl instead of git clone because the git clone method used more than 1GB RAM,
-# which exceeded the default pod memory limit.
+# Use the clone URL from the build's SourceInfo (provider-agnostic).
 mkdir -p $ADDONS_DIR
 cd $ADDONS_DIR
-curl -sSL https://github.com/${RUNBOAT_GIT_REPO}/tarball/${RUNBOAT_GIT_REF} | tar zxf - --strip-components=1
+git init
+git remote add origin "${RUNBOAT_GIT_CLONE_URL}"
+git fetch --depth 1 origin "${RUNBOAT_GIT_REF}"
+git checkout FETCH_HEAD
 
 # Install.
 INSTALL_METHOD=${INSTALL_METHOD:-oca_install_addons}
