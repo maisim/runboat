@@ -5,7 +5,6 @@ from typing import Annotated
 from fastapi import APIRouter, BackgroundTasks, Header, Request
 
 from .controller import controller
-from .models import SourceInfo
 from .settings import settings
 from .vcs_client import get_vcs_client
 
@@ -56,19 +55,15 @@ async def receive_github_payload(
             )
             return
         if payload["action"] in ("opened", "synchronize"):
-            pr_number = payload["pull_request"]["number"]
-            source_info = SourceInfo(
-                provider="github",
-                repository_id=repo,
-                repository_full_name=repo,
-                repository_url=f"https://github.com/{repo}",
+            client = get_vcs_client("github", settings)
+            source_info = client.build_source_info(
+                repo=repo,
                 source_kind="review_request",
                 source_branch=payload["pull_request"]["head"]["ref"],
                 target_branch=target_branch,
                 commit_sha=payload["pull_request"]["head"]["sha"],
-                clone_url=f"https://github.com/{repo}.git",
-                review_id=str(pr_number),
-                review_url=f"https://github.com/{repo}/pull/{pr_number}",
+                review_id=str(payload["pull_request"]["number"]),
+                review_url=f"https://github.com/{repo}/pull/{payload['pull_request']['number']}",
             )
             background_tasks.add_task(
                 controller.deploy_commit,
@@ -91,18 +86,12 @@ async def receive_github_payload(
                 target_branch,
             )
             return
-        source_info = SourceInfo(
-            provider="github",
-            repository_id=repo,
-            repository_full_name=repo,
-            repository_url=f"https://github.com/{repo}",
+        client = get_vcs_client("github", settings)
+        source_info = client.build_source_info(
+            repo=repo,
             source_kind="branch",
-            source_branch=None,
-            target_branch=target_branch,
             commit_sha=payload["after"],
-            clone_url=f"https://github.com/{repo}.git",
-            review_id=None,
-            review_url=None,
+            target_branch=target_branch,
         )
         background_tasks.add_task(
             controller.deploy_commit,
