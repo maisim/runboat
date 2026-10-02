@@ -23,8 +23,7 @@ dependencies = [
     "uvicorn",
 ]
 requires-python = "==3.13.*"
-version = "0.2"
-description = "A simple Odoo runbot lookalike using kubernetes."
+dynamic = ["version", "description"]
 
 [project.optional-dependencies]
 test = [

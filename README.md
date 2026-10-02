@@ -175,7 +175,7 @@ RUNBOAT_REPOS=[{"repo": "^oca/.*", "branch": "^15.0$", "builds": [{"image": "ghc
 
 ## Running in production
 
-`gunicorn -w 1 -k runboat.uvicorn.RunboatUvicornWorker runboat.app:app`.
+`uv run gunicorn -w 1 -k runboat.uvicorn.RunboatUvicornWorker runboat.app:app`.
 
 One and only one worker process is allowed at the moment (although nothing really bad
 should happen if there is more).

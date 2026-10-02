@@ -10,16 +10,22 @@ RUN curl -L \
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 ENV UV_SYSTEM_PYTHON=1
+ENV UV_COMPILE_BYTECODE=1
+ENV UV_LINK_MODE=copy
 
 WORKDIR /app
 
 # Install dependencies (layer cached unless pyproject.toml or uv.lock change)
 COPY pyproject.toml uv.lock ./
-RUN uv sync --frozen --no-dev --no-install-project
+
+# Install dependencies
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --locked --no-install-project --no-dev
 
 # Install the project
-COPY src/ src/
-RUN uv sync --frozen --no-dev --no-editable
+COPY src/ /app/
+COPY README.md ./
+RUN uv sync --locked --no-dev
 
 ENV RUNBOAT_REPOS='[{"repo": "^oca/.*", "branch": "^15.0$", "builds": [{"image": "ghcr.io/oca/oca-ci/py3.8-odoo15.0:latest"}]}]'
 ENV RUNBOAT_API_ADMIN_USER="admin"
@@ -43,4 +49,4 @@ ENV RUNBOAT_LOG_CONFIG=/etc/runboat-log-config.yaml
 
 EXPOSE 8000
 
-CMD [ "gunicorn", "-w", "1", "--bind", ":8000", "-k", "runboat.uvicorn.RunboatUvicornWorker", "--access-logfile=-", "runboat.app:app"]
+CMD [ "uv", "run", "gunicorn", "-w", "1", "--bind", ":8000", "-k", "runboat.uvicorn.RunboatUvicornWorker", "--access-logfile=-", "runboat.app:app"]

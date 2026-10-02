@@ -822,7 +822,6 @@ wheels = [
 
 [[package]]
 name = "runboat"
-version = "0.2"
 source = { editable = "." }
 dependencies = [
     { name = "ansi2html" },
@@ -870,7 +869,7 @@ requires-dist = [
     { name = "sse-starlette" },
     { name = "uvicorn" },
 ]
-provides-extras = ["test", "mypy"]
+provides-extras = ["mypy", "test"]
 
 [[package]]
 name = "sentry-sdk"
